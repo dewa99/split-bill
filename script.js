@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="text" class="person-name w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Person name">
             </div>
             <div>
-                <label class="block text-sm text-gray-600 mb-1">Order Amount:</label>
+                <label class="block text-sm text-gray-600 mb-1">Order Amount (Rp):</label>
                 <input type="number" min="0" step="1000" placeholder="0" 
                        class="person-order w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
             </div>
@@ -74,11 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get all people
         const people = document.querySelectorAll('[data-id]');
         if (people.length === 0) {
-            resultsDiv.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Please add at least one person.
-                </div>
-            `;
+            showError('Please add at least one person.');
             return;
         }
         
@@ -100,31 +96,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Validate orders match subtotal
-        if (Math.abs(totalOrders - subtotal) > 100) { // Allowing small rounding differences
-            resultsDiv.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Total orders (${formatRupiah(totalOrders)}) doesn't match subtotal (${formatRupiah(subtotal)})
-                </div>
-            `;
+        if (Math.abs(totalOrders - subtotal) > 100) {
+            showError(`Total orders (${formatRupiah(totalOrders)}) doesn't match subtotal (${formatRupiah(subtotal)})`);
             return;
         }
         
         // Validate final total is reasonable
         if (finalTotal > subtotal) {
-            resultsDiv.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Final total (${formatRupiah(finalTotal)}) can't be greater than subtotal (${formatRupiah(subtotal)})
-                </div>
-            `;
+            showError(`Final total (${formatRupiah(finalTotal)}) can't be greater than subtotal (${formatRupiah(subtotal)})`);
             return;
         }
         
         if (finalTotal <= 0) {
-            resultsDiv.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Final total must be greater than 0
-                </div>
-            `;
+            showError('Final total must be greater than 0');
             return;
         }
         
@@ -153,53 +137,76 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function displayResults(personData, billData) {
-        let html = `
-            <div class="bg-blue-50 p-4 rounded-md border border-blue-100">
-                <h3 class="font-semibold text-blue-800 mb-2">Bill Summary</h3>
-                <div class="space-y-1">
-                    <p class="flex justify-between">
-                        <span class="text-gray-600">Subtotal:</span>
-                        <span class="font-medium">${formatRupiah(billData.subtotal)}</span>
-                    </p>
-                    <p class="flex justify-between">
-                        <span class="text-gray-600">Discount:</span>
-                        <span class="font-medium text-red-500">-${formatRupiah(billData.discountAmount)}</span>
-                    </p>
-                    <p class="flex justify-between border-t border-gray-200 pt-1">
-                        <span class="text-gray-800 font-semibold">Final Total:</span>
-                        <span class="font-semibold">${formatRupiah(billData.finalTotal)}</span>
-                    </p>
-                </div>
+    function showError(message) {
+        resultsDiv.innerHTML = `
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                ${message}
             </div>
-            
-            <h3 class="font-semibold text-gray-700 mt-6 mb-2">Individual Payments</h3>
-            <div class="space-y-3">
+        `;
+    }
+    
+    function displayResults(personData, billData) {
+        // Summary section
+        const summaryHTML = `
+            <div class="bg-blue-50 p-4 rounded-md border border-blue-100 mb-6">
+                <h3 class="font-semibold text-blue-800 mb-3">Bill Summary</h3>
+                <table class="w-full">
+                    <tbody>
+                        <tr>
+                            <td class="py-1 text-gray-600">Subtotal:</td>
+                            <td class="py-1 text-right font-medium">${formatRupiah(billData.subtotal)}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-1 text-gray-600">Discount:</td>
+                            <td class="py-1 text-right font-medium text-red-500">-${formatRupiah(billData.discountAmount)}</td>
+                        </tr>
+                        <tr class="border-t border-gray-200">
+                            <td class="py-2 font-semibold text-gray-800">Final Total:</td>
+                            <td class="py-2 text-right font-semibold">${formatRupiah(billData.finalTotal)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         `;
         
+        // Table header
+        let tableHTML = `
+            ${summaryHTML}
+            <h3 class="font-semibold text-gray-700 mb-3">Individual Payments</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 text-left">
+                            <th class="py-2 px-4 border-b">Name</th>
+                            <th class="py-2 px-4 border-b text-right">Order</th>
+                            <th class="py-2 px-4 border-b text-right">Ratio</th>
+                            <th class="py-2 px-4 border-b text-right">Discount</th>
+                            <th class="py-2 px-4 border-b text-right">To Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        // Table rows
         personData.forEach(person => {
-            html += `
-                <div class="bg-gray-50 p-3 rounded-md border border-gray-200">
-                    <h4 class="font-medium text-gray-800 mb-1">${person.name}</h4>
-                    <div class="space-y-1 text-sm">
-                        <p class="flex justify-between">
-                            <span class="text-gray-600">Order:</span>
-                            <span>${formatRupiah(person.orderAmount)} (${(person.ratio * 100).toFixed(1)}%)</span>
-                        </p>
-                        <p class="flex justify-between">
-                            <span class="text-gray-600">Discount:</span>
-                            <span class="text-red-500">-${formatRupiah(person.discount)}</span>
-                        </p>
-                        <p class="flex justify-between border-t border-gray-200 pt-1 font-medium">
-                            <span class="text-gray-700">To Pay:</span>
-                            <span>${formatRupiah(person.total)}</span>
-                        </p>
-                    </div>
-                </div>
+            tableHTML += `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="py-2 px-4">${person.name}</td>
+                    <td class="py-2 px-4 text-right">${formatRupiah(person.orderAmount)}</td>
+                    <td class="py-2 px-4 text-right">${(person.ratio * 100).toFixed(1)}%</td>
+                    <td class="py-2 px-4 text-right text-red-500">-${formatRupiah(person.discount)}</td>
+                    <td class="py-2 px-4 text-right font-medium">${formatRupiah(person.total)}</td>
+                </tr>
             `;
         });
         
-        html += `</div>`;
-        resultsDiv.innerHTML = html;
+        // Close table
+        tableHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        resultsDiv.innerHTML = tableHTML;
     }
 });
