@@ -66,7 +66,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function calculateSplit() {
         // Get bill information
         const subtotal = parseFloat(document.getElementById('subtotal').value) || 0;
-        const discountAmount = parseFloat(document.getElementById('discount').value) || 0;
+        const finalTotal = parseFloat(document.getElementById('final-total').value) || 0;
+        
+        // Calculate discount amount
+        const discountAmount = subtotal - finalTotal;
         
         // Get all people
         const people = document.querySelectorAll('[data-id]');
@@ -106,11 +109,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Validate discount doesn't exceed subtotal
-        if (discountAmount > subtotal) {
+        // Validate final total is reasonable
+        if (finalTotal > subtotal) {
             resultsDiv.innerHTML = `
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Discount (${formatRupiah(discountAmount)}) can't exceed subtotal (${formatRupiah(subtotal)})
+                    Final total (${formatRupiah(finalTotal)}) can't be greater than subtotal (${formatRupiah(subtotal)})
+                </div>
+            `;
+            return;
+        }
+        
+        if (finalTotal <= 0) {
+            resultsDiv.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    Final total must be greater than 0
                 </div>
             `;
             return;
@@ -137,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         displayResults(personData, {
             subtotal,
             discountAmount,
-            finalTotal: subtotal - discountAmount
+            finalTotal
         });
     }
     
@@ -155,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="font-medium text-red-500">-${formatRupiah(billData.discountAmount)}</span>
                     </p>
                     <p class="flex justify-between border-t border-gray-200 pt-1">
-                        <span class="text-gray-800 font-semibold">Total:</span>
+                        <span class="text-gray-800 font-semibold">Final Total:</span>
                         <span class="font-semibold">${formatRupiah(billData.finalTotal)}</span>
                     </p>
                 </div>
